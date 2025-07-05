@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IAGains – Formulario de Cliente Profesional v3</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <!-- intl-tel-input for Country Codes -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/css/intlTelInput.css"/>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/js/intlTelInput.min.js"></script>
+
+    <style>
+        /* Estilos personalizados */
+        :root {
+            --bg-dark: #111827; /* gray-900 */
+            --bg-medium: #1f2937; /* gray-800 */
+            --border-color: #4b5563; /* gray-600 */
+            --text-light: #f3f4f6; /* gray-100 */
+            --text-medium: #9ca3af; /* gray-400 */
+            --accent-cyan: #22d3ee;
+            --accent-green: #34d399;
+            --accent-red: #f87171;
+        }
+
+        body { font-family: 'Inter', sans-serif; background-color: var(--bg-dark); }
+        .form-step { display: none; animation: fadeIn 0.5s ease-in-out; }
+        .form-step.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .step-item { transition: all 0.3s ease; }
+        .step-active { transform: scale(1.1); color: var(--accent-cyan); }
+        .step-active .step-circle { background-color: var(--accent-cyan); color: white; border-color: var(--accent-cyan); }
+        .step-completed .step-circle { background-color: var(--accent-green); color: white; border-color: var(--accent-green); }
+        .step-line { transition: background-color 0.3s ease; }
+
+        input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type=number] { -moz-appearance: textfield; }
+
+        .button-loading::after { content: ''; display: inline-block; width: 1rem; height: 1rem; margin-left: 0.75rem; border: 2px solid transparent; border-top-color: white; border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Styles for intl-tel-input */
+        .iti { width: 100%; }
+        .iti__country-list { background-color: var(--bg-medium); border-color: var(--border-color); z-index: 10; }
+        .iti__country { color: var(--text-light); }
+        .iti__country.iti__highlight { background-color: #374151; }
+        .iti__dial-code { color: var(--text-medium); }
+        .iti--allow-dropdown input { padding-left: 92px !important; }
+        
+        .error-message {
+            color: var(--accent-red);
+            font-size: 0.8rem;
+            margin-top: 0.25rem;
+            height: 1.2rem;
+            transition: all 0.2s;
+        }
+        
+        .cta-button {
+            transition: all 0.2s ease-in-out;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+        }
+        .cta-button:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3); }
+        .cta-button:active:not(:disabled) { transform: translateY(0); box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2); }
+
+        /* Estilos para Toast de Notificación de Error */
+        #error-toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background-color: var(--accent-red);
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            z-index: 9999;
+            transform: translateX(120%);
+            transition: transform 0.5s ease-in-out;
+        }
+        #error-toast.show { transform: translateX(0); }
+    </style>
+</head>
+<body class="text-gray-200 flex flex-col items-center justify-center min-h-screen p-4">
+
+    <!-- Banner de Urgencia Dinámico -->
+    <div class="w-full max-w-3xl bg-cyan-500 text-gray-900 font-bold text-center p-3 rounded-t-2xl text-sm md:text-base flex flex-col md:flex-row justify-around items-center">
+        <span id="offer-timer"><i class="fas fa-hourglass-half fa-spin mr-2"></i>Cargando oferta...</span>
+        <span class="hidden md:inline">|</span>
+        <span id="spots-counter"><i class="fas fa-users mr-2"></i>Calculando cupos...</span>
+    </div>
+
+    <div class="bg-gray-800 rounded-b-2xl shadow-2xl w-full max-w-3xl">
+        
+        <div id="form-container" class="p-6 md:p-10">
+            <!-- Encabezado -->
+            <div class="text-center mb-8">
+                <img src="https://placehold.co/120x120/1f2937/FFFFFF?text=IAGains" alt="Logo de IAGains" class="w-24 h-24 mx-auto mb-4 rounded-full object-cover">
+                <h1 class="text-3xl md:text-4xl font-bold text-white">IAGains: Inicia tu Transformación</h1>
+                <p class="text-gray-400 mt-2">Completa el formulario para desbloquear tu plan de acción personalizado.</p>
+            </div>
+            
+            <!-- Barra de Progreso de 4 Pasos -->
+            <div id="progress-bar" class="flex items-center justify-center mb-10">
+                <div class="step-item step-active text-center" data-step="1"><div class="step-circle w-10 h-10 mx-auto bg-gray-700 border-2 border-gray-600 rounded-full flex items-center justify-center font-bold text-lg">1</div><p class="text-xs mt-2 font-semibold">Datos</p></div>
+                <div class="step-line w-1/5 h-1 bg-gray-700"></div>
+                <div class="step-item text-gray-500 text-center" data-step="2"><div class="step-circle w-10 h-10 mx-auto bg-gray-700 border-2 border-gray-600 rounded-full flex items-center justify-center font-bold text-lg">2</div><p class="text-xs mt-2 font-semibold">Objetivos</p></div>
+                <div class="step-line w-1/5 h-1 bg-gray-700"></div>
+                <div class="step-item text-gray-500 text-center" data-step="3"><div class="step-circle w-10 h-10 mx-auto bg-gray-700 border-2 border-gray-600 rounded-full flex items-center justify-center font-bold text-lg">3</div><p class="text-xs mt-2 font-semibold">Nutrición</p></div>
+                <div class="step-line w-1/5 h-1 bg-gray-700"></div>
+                <div class="step-item text-gray-500 text-center" data-step="4"><div class="step-circle w-10 h-10 mx-auto bg-gray-700 border-2 border-gray-600 rounded-full flex items-center justify-center font-bold text-lg">✓</div><p class="text-xs mt-2 font-semibold">Confirmar</p></div>
+            </div>
+
+            <form id="client-form" novalidate>
+                <!-- Paso 1: Datos Personales -->
+                <div class="form-step active">
+                    <h2 class="text-2xl font-bold text-white mb-6 text-center">Paso 1: Datos Personales</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2">
+                        <div>
+                            <input type="text" id="full-name" placeholder="Nombre completo" class="w-full bg-gray-700 border-2 border-gray-600 rounded-lg p-3 text-white focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition" required>
+                            <div id="error-full-name" class="error-message"></div>
+                        </div>
+                        <div>
+                            <input type="tel" id="whatsapp" class="w-full bg-gray-700 border-2 border-gray-600 rounded-lg p-3 text-white focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition" required>
+                            <div id="error-whatsapp" class="error-message"></div>
+                        </div>
+                        <div>
+                            <input type="number" id="age" placeholder="Edad" class="w-full bg-gray-700 border-2 border-gray-600 rounded-lg p-3 text-white focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition" required>
+                            <div id="error-age" class="error-message"></div>
+                        </div>
+                        <div>
+                            <select id="gender" class="w-full bg-gray-700 border-2 border-gray-600 rounded-lg p-3 text-white focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition" required>
+                                <option value="" disabled selected>Selecciona tu sexo</option>
+                                <option>Masculino</option><option>Femenino</option><option>Otro</option>
+                            </select>
+                            <div id="error-gender" class="error-message"></div>
+                        </div>
+                        <div>
+                            <input type="number" step="0.1" id="weight" placeholder="Peso actual (kg)" class="w-full bg-gray-700 border-2 border-gray-600 rounded-lg p-3 text-white focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition" required>
+                            <div id="error-weight" class="error-message"></div>
+                        </div>
+                        <div>
+                            <input type="number" id="height" placeholder="Altura (cm)" class="w-full bg-gray-700 border-2 border-gray-600 rounded-lg p-3 text-white focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition" required>
+                            <div id="error-height" class="error-message"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Paso 2: Objetivos y Experiencia -->
+                <div class="form-step">
+                    <h2 class="text-2xl font-bold text-white mb-6 text-center">Paso 2: Tus Objetivos y Experiencia</h2>
+                    <div class="space-y-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-3">Tu objetivo principal:</label>
+                            <div id="goal-container" class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                <label class="bg-gray-700 p-4 rounded-lg cursor-pointer text-center hover:bg-gray-600 transition border-2 border-transparent has-[:checked]:border-cyan-500 has-[:checked]:bg-cyan-900/50"><input type="radio" name="goal" value="hypertrophy" class="sr-only" required>Masa Muscular</label>
+                                <label class="bg-gray-700 p-4 rounded-lg cursor-pointer text-center hover:bg-gray-600 transition border-2 border-transparent has-[:checked]:border-cyan-500 has-[:checked]:bg-cyan-900/50"><input type="radio" name="goal" value="fat_loss" class="sr-only">Perder Grasa</label>
+                                <label class="bg-gray-700 p-4 rounded-lg cursor-pointer text-center hover:bg-gray-600 transition border-2 border-transparent has-[:checked]:border-cyan-500 has-[:checked]:bg-cyan-900/50"><input type="radio" name="goal" value="recomposition" class="sr-only">Recomposición</label>
+                                <label class="bg-gray-700 p-4 rounded-lg cursor-pointer text-center hover:bg-gray-600 transition border-2 border-transparent has-[:checked]:border-cyan-500 has-[:checked]:bg-cyan-900/50"><input type="radio" name="goal" value="strength" class="sr-only">Más Fuerza</label>
+                            </div>
+                            <div id="error-goal" class="error-message"></div>
+                        </div>
+                        <div>
+                             <label for="motivation" class="block text-sm font-medium text-gray-300 mb-2">¿Qué cambiaría en tu vida si lograras este objetivo?</label>
+                             <textarea id="motivation" rows="2" placeholder="Ej: Tendría más confianza, mejor salud, más energía..." class="w-full bg-gray-700 border-2 border-gray-600 rounded-lg p-3 text-white focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition"></textarea>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-3">Tu nivel de experiencia entrenando:</label>
+                            <div id="experience-container" class="flex flex-col sm:flex-row gap-4">
+                                <label class="flex-1 bg-gray-700 p-4 rounded-lg cursor-pointer text-center hover:bg-gray-600 transition border-2 border-transparent has-[:checked]:border-cyan-500 has-[:checked]:bg-cyan-900/50"><input type="radio" name="experience" value="beginner" class="sr-only" required>Principiante</label>
+                                <label class="flex-1 bg-gray-700 p-4 rounded-lg cursor-pointer text-center hover:bg-gray-600 transition border-2 border-transparent has-[:checked]:border-cyan-500 has-[:checked]:bg-cyan-900/50"><input type="radio" name="experience" value="intermediate" class="sr-only">Intermedio</label>
+                                <label class="flex-1 bg-gray-700 p-4 rounded-lg cursor-pointer text-center hover:bg-gray-600 transition border-2 border-transparent has-[:checked]:border-cyan-500 has-[:checked]:bg-cyan-900/50"><input type="radio" name="experience" value="advanced" class="sr-only">Avanzado</label>
+                            </div>
+                            <div id="error-experience" class="error-message"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Paso 3: Nutrición y Estilo de Vida -->
+                <div class="form-step">
+                    <h2 class="text-2xl font-bold text-white mb-6 text-center">Paso 3: Nutrición y Estilo de Vida</h2>
+                    <div class="space-y-4">
+                        <div>
+                            <label for="activity-level" class="block text-sm font-medium text-gray-300 mb-2">Nivel de actividad diaria (fuera del gimnasio)</label>
+                           <select id="activity-level" class="w-full bg-gray-700 border-2 border-gray-600 rounded-lg p-3 text-white focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition" required>
+                               <option value="" disabled selected>Selecciona tu actividad</option>
+                               <option>Sedentario (Trabajo de oficina)</option>
+                               <option>Ligero (Algo de movimiento)</option>
+                               <option>Activo (Trabajo físico)</option>
+                               <option>Muy Activo (Trabajo intenso / atleta)</option>
+                           </select>
+                           <div id="error-activity-level" class="error-message"></div>
+                        </div>
+                        <div>
+                            <label for="food-preferences" class="block text-sm font-medium text-gray-300 mb-2">Preferencias alimentarias</label>
+                            <select id="food-preferences" class="w-full bg-gray-700 border-2 border-gray-600 rounded-lg p-3 text-white focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition" required>
+                               <option>Como de todo (Omnívoro)</option>
+                               <option>Vegetariano</option>
+                               <option>Vegano</option>
+                           </select>
+                           <div id="error-food-preferences" class="error-message"></div>
+                        </div>
+                        <div>
+                            <label for="allergies" class="block text-sm font-medium text-gray-300 mb-2">Alergias o intolerancias (déjalo en blanco si no tienes)</label>
+                            <textarea id="allergies" rows="2" placeholder="Ej: Lactosa, gluten, maní..." class="w-full bg-gray-700 border-2 border-gray-600 rounded-lg p-3 text-white focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition"></textarea>
+                        </div>
+                        <div>
+                            <label for="disliked-foods" class="block text-sm font-medium text-gray-300 mb-2">Alimentos que prefieres evitar</label>
+                            <textarea id="disliked-foods" rows="2" placeholder="Ej: Brócoli, pescado, hígado..." class="w-full bg-gray-700 border-2 border-gray-600 rounded-lg p-3 text-white focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition"></textarea>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Paso 4: Consentimiento (MODIFICADO) -->
+                <div class="form-step">
+                    <h2 class="text-2xl font-bold text-white mb-6 text-center">Paso 4: Confirmación Final</h2>
+                    <div class="space-y-5 bg-gray-900/50 p-6 rounded-lg">
+                        <!-- Checkbox de IA eliminado -->
+                        <label for="consent-comms" class="flex items-start space-x-3 cursor-pointer">
+                            <input type="checkbox" id="consent-comms" class="mt-1 h-5 w-5 rounded border-gray-500 bg-gray-700 text-cyan-500 focus:ring-cyan-500" required>
+                            <span class="text-gray-300">Acepto recibir comunicaciones vía WhatsApp para mi seguimiento.</span>
+                        </label>
+                        <div id="error-consent-comms" class="error-message ml-8"></div>
+                    </div>
+                    <!-- Nuevo aviso de privacidad -->
+                    <p class="text-xs text-gray-500 text-center mt-4">Al finalizar, aceptas que procesemos tus datos para crear tu plan personalizado.</p>
+                </div>
+
+                <!-- Botones de Navegación (MODIFICADO para Responsividad) -->
+                <div class="mt-8 flex flex-col md:flex-row-reverse md:justify-between gap-4">
+                    <button type="button" id="nextBtn" class="cta-button group w-full md:w-auto flex items-center justify-center font-bold py-3 px-6 rounded-lg text-white"></button>
+                    <button type="button" id="prevBtn" class="cta-button w-full md:w-auto bg-gray-600 hover:bg-gray-500 text-white font-bold py-3 px-6 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed">Anterior</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Página Final / Oferta Optimizada -->
+        <div id="final-page" class="p-6 md:p-10 text-center hidden">
+            <div class="max-w-2xl mx-auto">
+                <i class="fas fa-check-circle text-6xl text-green-500 mx-auto mb-4"></i>
+                <h2 class="text-3xl md:text-4xl font-extrabold text-white mb-3">¡Estás a un paso de comenzar!</h2>
+                <p class="text-gray-300 text-lg mb-8">Basado en tus respuestas, hemos preparado una oferta irresistible para que logres tus metas.</p>
+                
+                <div class="bg-gray-900/70 border border-gray-700 rounded-xl p-6 mb-8 text-left">
+                    <h3 class="text-xl font-bold text-center text-white mb-4">Lo que obtienes con IAGains:</h3>
+                    <ul class="space-y-3 text-gray-400">
+                        <li class="flex items-start"><i class="fas fa-dumbbell text-cyan-400 w-6 pt-1"></i><span><strong class="text-white">REGALO: Plan de Entrenamiento Personalizado.</strong> (Valor: $1,500 MXN)</span></li>
+                        <li class="flex items-start"><i class="fas fa-apple-alt text-green-400 w-6 pt-1"></i><span><strong class="text-white">BONUS: Plan Nutricional y Macros.</strong> (Valor: $1,200 MXN)</span></li>
+                        <li class="flex items-start"><i class="fab fa-whatsapp text-teal-400 w-6 pt-1"></i><span><strong class="text-white">Asistente IA 24/7 en tu WhatsApp.</strong> (Valor: Incalculable)</span></li>
+                    </ul>
+                    <div class="text-center mt-4 pt-4 border-t border-gray-700">
+                        <p class="text-gray-400">Valor Total del Servicio:</p>
+                        <p class="text-2xl font-bold text-red-500 line-through">$2,700 MXN / mes</p>
+                    </div>
+                </div>
+                
+                <div class="mb-8">
+                     <h3 class="text-xl font-bold text-center text-white mb-4">Únete a más de 1,000 clientes satisfechos</h3>
+                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
+                         <div class="bg-gray-700 p-4 rounded-lg"><div class="flex items-center mb-2"><img src="https://ui-avatars.com/api/?name=Carlos+Gonzalez&background=7e22ce&color=fff&size=40&font-size=0.4" class="w-10 h-10 rounded-full mr-3" alt="Foto de Carlos González"><div><p class="font-bold text-white">Carlos González</p><p class="text-xs text-yellow-400"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i></p></div></div><p class="text-sm text-gray-300">"Dudaba si podría ganar músculo con un plan online, pero en 8 semanas aumenté 3 kg y mi fuerza subió un 20%. El seguimiento por IA es genial."</p></div>
+                         <div class="bg-gray-700 p-4 rounded-lg"><div class="flex items-center mb-2"><img src="https://ui-avatars.com/api/?name=Sofia+Reyes&background=db2777&color=fff&size=40&font-size=0.4" class="w-10 h-10 rounded-full mr-3" alt="Foto de Sofía Reyes"><div><p class="font-bold text-white">Sofía Reyes</p><p class="text-xs text-yellow-400"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i></p></div></div><p class="text-sm text-gray-300">"¡Perdí 8 kg y gané muchísima confianza! El sistema es súper fácil de usar y se adapta a mis horarios. 100% recomendado."</p></div>
+                     </div>
+                </div>
+
+                <div class="bg-cyan-900/50 border-2 border-cyan-500 rounded-xl p-6 mb-6">
+                    <p class="text-lg text-cyan-300 font-bold">OFERTA EXCLUSIVA HOY</p>
+                    <p class="text-5xl font-extrabold text-white my-2">$199 MXN <span class="text-xl font-normal">/ mes</span></p>
+                    <p class="text-gray-300">(Solo $6.60 MXN por día)</p>
+                    <div class="mt-4 bg-green-500/20 text-green-300 font-bold py-2 px-4 rounded-lg inline-block"><i class="fas fa-shield-alt mr-2"></i>Garantía de 30 días o tu dinero de vuelta.</div>
+                </div>
+
+                <a href="#" id="stripe-link" target="_blank" class="cta-button inline-block w-full max-w-md bg-gradient-to-r from-green-500 to-cyan-600 hover:from-green-600 hover:to-cyan-700 text-white font-bold py-4 px-8 rounded-lg text-xl shadow-lg hover:shadow-cyan-500/40 transition-all duration-300">
+                    <i class="fas fa-rocket mr-2"></i>¡Comenzar Mi Transformación AHORA!
+                </a>
+                
+                <p class="text-xs text-gray-500 mt-4">Pago seguro con Stripe. <strong class="text-gray-400">Cancela cuando quieras, sin penalizaciones.</strong></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast de Notificación -->
+    <div id="error-toast" role="alert">
+        <i class="fas fa-exclamation-circle mr-2"></i>
+        <span id="toast-message"></span>
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // --- LÓGICA DEL FORMULARIO MULTI-PASO ---
+        let currentStep = 0;
+        const formSteps = document.querySelectorAll('.form-step');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const progressBarSteps = document.querySelectorAll('.step-item');
+        const formContainer = document.getElementById('form-container');
+        const finalPage = document.getElementById('final-page');
+        const stripeLink = document.getElementById('stripe-link');
+        
+        // --- INICIALIZACIÓN DE intl-tel-input ---
+        const phoneInput = document.querySelector("#whatsapp");
+        const iti = window.intlTelInput(phoneInput, {
+            initialCountry: "mx",
+            separateDialCode: true,
+            utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/js/utils.js",
+        });
+
+        // --- LÓGICA DE MANEJO DE ERRORES ---
+        const errorToast = document.getElementById('error-toast');
+        const toastMessage = document.getElementById('toast-message');
+
+        function showToast(message) {
+            toastMessage.textContent = message;
+            errorToast.classList.add('show');
+            setTimeout(() => {
+                errorToast.classList.remove('show');
+            }, 5000);
+        }
+
+        // --- LÓGICA DE CONTADORES DE URGENCIA ---
+        const offerTimerEl = document.getElementById('offer-timer');
+        const spotsCounterEl = document.getElementById('spots-counter');
+
+        function initializeUrgencyCounters() {
+            let offerEndTime = localStorage.getItem('offerEndTime');
+            if (!offerEndTime) {
+                offerEndTime = new Date().getTime() + 24 * 60 * 60 * 1000; // 24 horas
+                localStorage.setItem('offerEndTime', offerEndTime);
+            }
+
+            const timerInterval = setInterval(() => {
+                const now = new Date().getTime();
+                const distance = offerEndTime - now;
+
+                if (distance < 0) {
+                    clearInterval(timerInterval);
+                    offerTimerEl.innerHTML = '<i class="fas fa-clock mr-2"></i>Oferta Expirada';
+                    stripeLink.style.pointerEvents = 'none';
+                    stripeLink.style.opacity = '0.5';
+                    return;
+                }
+
+                const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+                offerTimerEl.innerHTML = `<i class="fas fa-fire mr-2"></i>Oferta termina en: <strong>${hours}h ${minutes}m ${seconds}s</strong>`;
+            }, 1000);
+
+            let availableSpots = localStorage.getItem('availableSpots');
+            if (availableSpots === null || isNaN(availableSpots)) {
+                availableSpots = 50;
+                localStorage.setItem('availableSpots', availableSpots);
+            } else {
+                availableSpots = parseInt(availableSpots, 10);
+            }
+            spotsCounterEl.innerHTML = `<i class="fas fa-users mr-2"></i>¡Solo quedan <strong>${availableSpots}</strong> cupos!`;
+
+            function decreaseSpots() {
+                let currentSpots = parseInt(localStorage.getItem('availableSpots') || '5', 10);
+                if (currentSpots > 5) {
+                    const decreaseBy = Math.floor(Math.random() * 2) + 1;
+                    currentSpots = Math.max(5, currentSpots - decreaseBy);
+                    localStorage.setItem('availableSpots', currentSpots);
+                    spotsCounterEl.innerHTML = `<i class="fas fa-users mr-2"></i>¡Solo quedan <strong>${currentSpots}</strong> cupos!`;
+                }
+                const randomDelay = Math.random() * (15 * 60 * 1000 - 5 * 60 * 1000) + 5 * 60 * 1000;
+                setTimeout(decreaseSpots, randomDelay);
+            }
+            setTimeout(decreaseSpots, Math.random() * 2 * 60 * 1000 + 60000);
+        }
+
+        // --- LÓGICA PRINCIPAL DEL FORMULARIO ---
+        stripeLink.href = "https://buy.stripe.com/6oU6oHf1kgt5eGSb9rdUY01"; 
+
+        nextBtn.addEventListener('click', async () => {
+            if (validateCurrentStep()) {
+                if (currentStep < formSteps.length - 1) {
+                    currentStep++;
+                    showStep(currentStep);
+                } else {
+                    await handleFormSubmit();
+                }
+            }
+        });
+
+        prevBtn.addEventListener('click', () => {
+            if (currentStep > 0) {
+                currentStep--;
+                showStep(currentStep);
+            }
+        });
+
+        async function handleFormSubmit() {
+            nextBtn.disabled = true;
+            nextBtn.classList.add('button-loading');
+            nextBtn.innerHTML = 'Procesando...';
+
+            const formData = {
+                fecha: new Date().toISOString(),
+                nombreCompleto: document.getElementById('full-name').value,
+                whatsapp: iti.getNumber(),
+                edad: document.getElementById('age').value,
+                sexo: document.getElementById('gender').value,
+                pesoKg: document.getElementById('weight').value,
+                alturaCm: document.getElementById('height').value,
+                objetivo: document.querySelector('input[name="goal"]:checked')?.value,
+                motivacion: document.getElementById('motivation').value || 'No especificada',
+                experiencia: document.querySelector('input[name="experience"]:checked')?.value,
+                actividadDiaria: document.getElementById('activity-level').value,
+                preferenciasAlimentarias: document.getElementById('food-preferences').value,
+                alergias: document.getElementById('allergies').value || 'Ninguna',
+                alimentosNoDeseados: document.getElementById('disliked-foods').value || 'Ninguno'
+            };
+
+            const n8nWebhookUrl = 'http://localhost:5678/webhook/0f4722dd-7c0d-4aa8-a959-0d77afcbc365';
+
+            try {
+                const response = await fetch(n8nWebhookUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData),
+                    mode: 'cors'
+                });
+                if (!response.ok) {
+                    throw new Error(`Error del servidor: ${response.statusText}`);
+                }
+                formContainer.style.display = 'none';
+                finalPage.style.display = 'block';
+
+            } catch (error) {
+                console.error('No se pudieron enviar los datos:', error);
+                showToast('Hubo un problema al procesar tu información. Por favor, intenta de nuevo.');
+                nextBtn.disabled = false;
+                nextBtn.classList.remove('button-loading');
+                nextBtn.innerHTML = `<span>Reintentar</span><i class="fas fa-redo ml-2"></i>`;
+            }
+        }
+
+        function showStep(stepIndex) {
+            formSteps.forEach((step, index) => step.classList.toggle('active', index === stepIndex));
+            updateProgressBar(stepIndex);
+            updateNavigationButtons(stepIndex);
+        }
+
+        function validateCurrentStep() {
+            const currentFormStep = formSteps[currentStep];
+            let isValid = true;
+            let firstErrorElement = null;
+            
+            currentFormStep.querySelectorAll('.error-message').forEach(el => el.textContent = '');
+            currentFormStep.querySelectorAll('.border-red-500').forEach(el => el.classList.remove('border-red-500', 'border-2'));
+
+            const inputs = currentFormStep.querySelectorAll('input[required], select[required]');
+            
+            inputs.forEach(input => {
+                const id = input.id || input.name;
+                const errorEl = document.getElementById(`error-${id}`);
+                let message = '';
+
+                if (input.type === 'radio' || input.type === 'checkbox') {
+                    // MODIFICADO: Simplificado para el único checkbox restante
+                    if (id === 'consent-comms' && !input.checked) {
+                         message = 'Debes aceptar esta condición para continuar.';
+                    } else if (input.name && !document.querySelector(`input[name="${input.name}"]:checked`)) {
+                         const containerErrorEl = document.getElementById(`error-${input.name}`);
+                         message = 'Por favor, selecciona una opción.';
+                         if(containerErrorEl) containerErrorEl.textContent = message;
+                    }
+                } else if (!input.value.trim()) {
+                    message = 'Este campo es obligatorio.';
+                } else {
+                    switch(id) {
+                        case 'full-name':
+                            if (!/^[a-zA-Z\sñÑáéíóúÁÉÍÓÚ]{3,}$/.test(input.value)) {
+                                message = 'Introduce un nombre válido (solo letras).';
+                            }
+                            break;
+                        case 'whatsapp':
+                            if (!iti.isValidNumber()) message = 'Por favor, introduce un número de WhatsApp válido.';
+                            break;
+                        case 'age':
+                            const age = parseInt(input.value, 10);
+                            if (isNaN(age) || !Number.isInteger(Number(input.value)) || age < 14 || age > 99) {
+                                message = 'Introduce una edad válida (número entero entre 14-99).';
+                            }
+                            break;
+                        case 'weight':
+                            const weight = parseFloat(input.value);
+                            if (isNaN(weight) || weight < 30 || weight > 300) message = 'Introduce un peso válido (entre 30-300 kg).';
+                            break;
+                        case 'height':
+                            const height = parseInt(input.value, 10);
+                            if (isNaN(height) || !Number.isInteger(Number(input.value)) || height < 100 || height > 250) {
+                                message = 'Introduce una altura válida (número entero en cm).';
+                            }
+                            break;
+                    }
+                }
+
+                if (message) {
+                    isValid = false;
+                    if(errorEl) errorEl.textContent = message;
+                    const elToBorder = input.type === 'radio' ? input.closest('label') : input;
+                    elToBorder.classList.add('border-red-500', 'border-2');
+                    if (!firstErrorElement) {
+                        firstErrorElement = elToBorder;
+                    }
+                }
+            });
+
+            if (!isValid && firstErrorElement) {
+                firstErrorElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+            return isValid;
+        }
+
+        function updateProgressBar(stepIndex) {
+            progressBarSteps.forEach((step, index) => {
+                step.classList.remove('step-active', 'step-completed', 'text-gray-500');
+                const line = step.previousElementSibling;
+                if (index < stepIndex) {
+                    step.classList.add('step-completed');
+                    if (line) line.style.backgroundColor = 'var(--accent-green)';
+                } else if (index === stepIndex) {
+                    step.classList.add('step-active');
+                    if (line) line.style.backgroundColor = 'var(--accent-cyan)';
+                } else {
+                    step.classList.add('text-gray-500');
+                    if (line) line.style.backgroundColor = 'var(--border-color)';
+                }
+            });
+        }
+        
+        function updateNavigationButtons(stepIndex) {
+            prevBtn.disabled = stepIndex === 0;
+            
+            nextBtn.classList.remove(
+                'bg-gradient-to-r', 'from-cyan-500', 'to-blue-600', 'hover:from-cyan-600', 'hover:to-blue-700',
+                'from-green-500', 'to-teal-500', 'hover:from-green-600', 'hover:to-teal-600'
+            );
+
+            if (stepIndex === formSteps.length - 1) {
+                nextBtn.innerHTML = `<span>Finalizar y Ver Mi Oferta</span><i class="fas fa-check ml-2"></i>`;
+                nextBtn.classList.add('bg-gradient-to-r', 'from-green-500', 'to-teal-500', 'hover:from-green-600', 'hover:to-teal-600');
+            } else {
+                nextBtn.innerHTML = `<span>Siguiente</span><i class="fas fa-arrow-right ml-2 transition-transform group-hover:translate-x-1"></i>`;
+                nextBtn.classList.add('bg-gradient-to-r', 'from-cyan-500', 'to-blue-600', 'hover:from-cyan-600', 'hover:to-blue-700');
+            }
+        }
+
+        // --- INICIALIZACIÓN ---
+        showStep(currentStep);
+        initializeUrgencyCounters();
+    });
+    </script>
+</body>
+</html>
